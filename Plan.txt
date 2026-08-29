@@ -1,0 +1,140 @@
+WorkerStudy - Behavior Tree Learning Project
+=============================================
+Godot 4.7, C#, 2D, Forward+ renderer.
+
+GOAL
+----
+Build a super simple 2D sandbox to learn behavior trees: 5 worker units
+(cylinders) wander a world, search for food (spheres), and when found,
+carry it back to a home base (pyramid). Includes a pannable/zoomable
+2D camera (no rotation). No textures/models - flat-color primitives only.
+
+DECISIONS LOCKED IN (from clarifying questions)
+------------------------------------------------
+- Behavior tree: hand-rolled minimal C# framework (no addon/plugin), so
+  internals (Sequence, Selector, Action, Condition, Status) are visible
+  and understandable.
+- Food discovery: workers wander randomly until food enters a detection
+  radius, then switch to seeking it. This gives the BT a real "Search"
+  behavior, not just omniscient pathing.
+- Loop behavior: endless. When a worker drops food at home base, a new
+  food sphere spawns elsewhere and the cycle continues indefinitely.
+- Camera: drag-to-pan (mouse) + scroll-wheel zoom, clamped zoom range,
+  no rotation.
+
+OPEN ASSUMPTION TO FLAG (not yet confirmed)
+--------------------------------------------
+Since this is top-down 2D, a literal cylinder/sphere/pyramid look the
+same from above (circle/circle/triangle-ish). Planned visual shorthand:
+  - Worker (cylinder)  -> filled circle + small distinguishing marker
+                          (e.g. thin outline ring or short line = "up"
+                          facing) so it doesn't read as identical to food.
+  - Food (sphere)       -> plain filled circle.
+  - Home base (pyramid) -> filled triangle (or square with triangle
+                          outline).
+All drawn via Node2D custom _Draw() calls (draw_circle/draw_polygon),
+no sprites or textures. We'll sanity-check this once Phase 2 is on
+screen and adjust colors/markers if things are hard to tell apart.
+
+PHASES
+------
+
+Phase 1: Project & Scene Scaffolding
+  - Confirm C# build works in this Godot project (.csproj, a trivial
+    test script compiles and runs).
+  - Create folder structure: Scenes/, Scripts/, Scripts/BehaviorTree/,
+    Scripts/Entities/, Scripts/World/.
+  - Create main scene (Main.tscn) with a Node2D root, empty for now.
+  Deliverable: project runs, opens a blank window, no errors.
+
+Phase 2: World Primitives & Static Scene
+  - Add a simple bounded "ground" area (just a colored rectangle or
+    border outline so pan/zoom has visible reference points).
+  - Add the Home Base as a static Node2D with custom-drawn triangle,
+    placed roughly at world center.
+  - Add a couple of reference grid lines or markers so panning/zooming
+    is easy to verify visually.
+  Deliverable: static scene with visible ground bounds + home base.
+
+Phase 3: Camera Controller (pan/zoom, no rotation)
+  - Camera2D with a controller script.
+  - Mouse-drag panning (press+drag to move camera).
+  - Scroll-wheel zoom in/out, clamped to min/max zoom levels.
+  - Explicitly no rotation support.
+  Deliverable: can freely pan and zoom around the static scene from
+  Phase 2.
+
+Phase 4: Food Spawner System
+  - Food entity: Node2D, custom-drawn circle, has a position.
+  - Simple spawner: places food at random valid positions within world
+    bounds (away from home base), on a timer or on-demand when a food
+    item is collected.
+  - No BT needed yet - just spawning/despawning logic.
+  Deliverable: food spheres appear in the world; can verify spawn/despawn
+  by manually removing one and confirming a replacement appears (or via
+  a temporary debug key).
+
+Phase 5: Worker Entity & Movement (no brain yet)
+  - Worker entity: Node2D, custom-drawn circle/marker, holds state
+    (position, speed, "carrying food" flag).
+  - Basic movement helper: MoveToward(targetPosition, delta) that the
+    BT will call into later.
+  - Spawn 5 workers near home base, no logic driving them yet (just
+    confirm they render and can be moved by a hardcoded test command).
+  Deliverable: 5 worker cylinders visible near home base.
+
+Phase 6: Minimal Behavior Tree Framework (core, reusable)
+  - BTNode base class with Status enum {Success, Failure, Running} and
+    an abstract Tick() method.
+  - Composite nodes: Sequence, Selector.
+  - Leaf node types: ActionNode (delegate-based), ConditionNode
+    (delegate-based), so worker-specific logic can be plugged in without
+    a new class per behavior.
+  - Optional decorator: Inverter (useful for negated conditions).
+  - Unit-testable in isolation from the game scene if practical (simple
+    console-style sanity check of Sequence/Selector logic).
+  Deliverable: standalone BT framework with no Worker-specific code,
+  ready to be wired up.
+
+Phase 7: Worker Behavior Tree (the actual "brain")
+  - Define worker blackboard/state: IsCarryingFood, TargetFood,
+    DetectionRadius, HomeBasePosition.
+  - Conditions: HasFoodTarget(), CanSeeFood() (nearest food within
+    DetectionRadius), IsCarryingFood(), IsAtHome(), IsAtFoodTarget().
+  - Actions: Wander() (pick random nearby point, move toward it),
+    MoveToFood(), PickUpFood(), MoveToHome(), DropOffFood().
+  - Assemble tree (roughly):
+      Selector
+        Sequence(IsCarryingFood -> MoveToHome -> DropOffFood)
+        Sequence(CanSeeFood -> MoveToFood -> PickUpFood)
+        Wander
+  - Wire one worker up first, verify behavior end-to-end before scaling
+    to 5.
+  Deliverable: one worker autonomously wanders, finds food, returns it,
+  and repeats.
+
+Phase 8: Integration - All 5 Workers + Endless Loop
+  - Attach the BT to all 5 workers.
+  - Confirm food respawns after each successful drop-off (endless loop).
+  - Tune parameters: worker speed, detection radius, wander step size/
+    frequency, world bounds, spawn exclusion zone around home base.
+  Deliverable: 5 workers concurrently searching, gathering, and
+  returning food, indefinitely, viewable via the pan/zoom camera.
+
+Phase 9 (stretch, optional): Debug Visibility
+  - Small on-screen label or color tint per worker showing current BT
+    leaf/state (e.g. "Wander", "Seek", "Return") to make the tree's
+    decisions legible while watching the sim - useful since the whole
+    point is learning how BTs behave.
+  - Possibly a pause/step control to freeze time and inspect state.
+  Only do this if Phase 8 feels hard to "read" just by watching shapes
+  move around.
+
+NOT IN SCOPE FOR THIS ITERATION
+--------------------------------
+- Obstacles/pathfinding around obstacles (open world, straight-line
+  movement only).
+- Multiple home bases, multiple food types, worker-to-worker
+  communication/coordination.
+- Textures, 3D models, animations.
+- Saving/loading state.
