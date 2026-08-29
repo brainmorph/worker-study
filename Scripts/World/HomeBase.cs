@@ -9,6 +9,11 @@ public partial class HomeBase : Node2D
     private static readonly Color FillColor = new(0.85f, 0.65f, 0.2f);
     private static readonly Color OutlineColor = new(0.5f, 0.35f, 0.1f);
 
+    public override void _Ready()
+    {
+        Position = WorldConfig.HomeBasePosition;
+    }
+
     public override void _Draw()
     {
         Vector2[] points =
