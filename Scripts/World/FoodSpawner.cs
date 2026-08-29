@@ -3,10 +3,9 @@ using Godot;
 
 namespace WorkerStudy.World;
 
-// Owns the active Food instances: spawns the initial batch, and replaces
-// any food that gets collected so the world never runs dry (Phase 8+
-// will call CollectFood from worker behavior trees instead of the debug
-// key below).
+// Owns the active Food instances: spawns the initial batch, replaces any
+// food that gets collected so the world never runs dry, and lets worker
+// behavior trees query for the nearest food in range.
 public partial class FoodSpawner : Node2D
 {
     [Export] public int InitialFoodCount = 5;
@@ -41,6 +40,26 @@ public partial class FoodSpawner : Node2D
         _activeFood.Remove(food);
         food.QueueFree();
         SpawnFood();
+    }
+
+    // Returns the closest active food within maxDistance of origin, or
+    // null if none qualifies.
+    public Food FindNearestFood(Vector2 origin, float maxDistance)
+    {
+        Food nearest = null;
+        float nearestDistance = maxDistance;
+
+        foreach (Food food in _activeFood)
+        {
+            float distance = origin.DistanceTo(food.Position);
+            if (distance <= nearestDistance)
+            {
+                nearest = food;
+                nearestDistance = distance;
+            }
+        }
+
+        return nearest;
     }
 
     private void SpawnFood()

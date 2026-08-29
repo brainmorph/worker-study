@@ -4,50 +4,37 @@ using WorkerStudy.World;
 
 namespace WorkerStudy.Entities;
 
-// Spawns the 5 workers near home base. Until the behavior tree exists
-// (Phase 7), this also drives movement directly as a debug aid.
+// Spawns the workers near home base, gives each one a WorkerAi brain, and
+// ticks those brains every frame - this is what actually drives movement
+// now that the behavior tree exists.
 public partial class WorkerSpawner : Node2D
 {
     [Export] public int WorkerCount = 5;
     [Export] public float SpawnRadius = 60f;
 
-    private readonly List<Worker> _workers = new();
-    private readonly Dictionary<Worker, Vector2> _debugMoveTargets = new();
+    private readonly List<WorkerAi> _brains = new();
     private readonly RandomNumberGenerator _rng = new();
 
     public override void _Ready()
     {
         _rng.Randomize();
+        var foodSpawner = GetNode<FoodSpawner>("../FoodSpawner");
+
         for (int i = 0; i < WorkerCount; i++)
         {
-            SpawnWorker();
+            SpawnWorker(foodSpawner);
         }
     }
 
     public override void _Process(double delta)
     {
-        foreach ((Worker worker, Vector2 target) in _debugMoveTargets)
+        foreach (WorkerAi brain in _brains)
         {
-            worker.MoveToward(target, delta);
+            brain.Tick(delta);
         }
     }
 
-    public override void _UnhandledInput(InputEvent @event)
-    {
-        // Debug aid: left-click sends every worker toward the clicked
-        // point, so MoveToward can be verified before any behavior tree
-        // logic exists.
-        if (@event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: true })
-        {
-            Vector2 target = GetGlobalMousePosition();
-            foreach (Worker worker in _workers)
-            {
-                _debugMoveTargets[worker] = target;
-            }
-        }
-    }
-
-    private void SpawnWorker()
+    private void SpawnWorker(FoodSpawner foodSpawner)
     {
         Vector2 offset = new(
             _rng.RandfRange(-SpawnRadius, SpawnRadius),
@@ -55,6 +42,6 @@ public partial class WorkerSpawner : Node2D
 
         var worker = new Worker { Position = WorldConfig.HomeBasePosition + offset };
         AddChild(worker);
-        _workers.Add(worker);
+        _brains.Add(new WorkerAi(worker, foodSpawner));
     }
 }

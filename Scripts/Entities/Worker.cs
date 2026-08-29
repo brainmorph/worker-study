@@ -2,12 +2,15 @@ using Godot;
 
 namespace WorkerStudy.Entities;
 
-// No behavior of its own yet - just rendering, movement, and state that a
-// behavior tree will drive starting in Phase 7.
+// Just rendering, movement, and state - a WorkerAi drives it by calling
+// MoveToward/HasReached and setting IsCarryingFood.
 public partial class Worker : Node2D
 {
     [Export] public float Radius = 18f;
     [Export] public float Speed = 120f;
+    [Export] public float DetectionRadius = 220f;
+    [Export] public float WanderRadius = 250f;
+    [Export] public float ArrivalTolerance = 6f;
 
     private static readonly Color BodyColor = new(0.3f, 0.55f, 0.8f);
     private static readonly Color OutlineColor = new(0.15f, 0.3f, 0.45f);
