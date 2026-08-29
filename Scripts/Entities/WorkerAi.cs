@@ -62,6 +62,7 @@ public sealed class WorkerAi
 
     private BTStatus FindNearestFood()
     {
+        _worker.BtState = WorkerBtState.SeekFood;
         Food nearest = _foodSpawner.FindNearestFood(_worker.Position, _worker.DetectionRadius);
         if (nearest is null)
         {
@@ -74,6 +75,8 @@ public sealed class WorkerAi
 
     private BTStatus MoveToFood()
     {
+        _worker.BtState = WorkerBtState.SeekFood;
+
         // The target may have been collected by another worker since we
         // picked it - fall through so the tree can wander or re-search.
         if (!HasValidFoodTarget())
@@ -106,6 +109,7 @@ public sealed class WorkerAi
 
     private BTStatus MoveToHome()
     {
+        _worker.BtState = WorkerBtState.ReturnHome;
         Vector2 home = WorldConfig.HomeBasePosition;
         if (_worker.HasReached(home, _worker.ArrivalTolerance))
         {
@@ -124,6 +128,8 @@ public sealed class WorkerAi
 
     private BTStatus Wander()
     {
+        _worker.BtState = WorkerBtState.Wander;
+
         if (!_hasWanderTarget || _worker.HasReached(_wanderTarget, _worker.ArrivalTolerance))
         {
             _wanderTarget = PickWanderTarget();

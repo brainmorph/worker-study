@@ -2,8 +2,17 @@ using Godot;
 
 namespace WorkerStudy.Entities;
 
+// Named after the behavior tree branch currently driving the worker, so
+// it can be shown on screen (Phase 9 debug visibility).
+public enum WorkerBtState
+{
+    Wander,
+    SeekFood,
+    ReturnHome,
+}
+
 // Just rendering, movement, and state - a WorkerAi drives it by calling
-// MoveToward/HasReached and setting IsCarryingFood.
+// MoveToward/HasReached and setting IsCarryingFood/BtState.
 public partial class Worker : Node2D
 {
     [Export] public float Radius = 18f;
@@ -18,6 +27,7 @@ public partial class Worker : Node2D
 
     private Vector2 _facing = Vector2.Up;
     private bool _isCarryingFood;
+    private WorkerBtState _btState = WorkerBtState.Wander;
 
     public bool IsCarryingFood
     {
@@ -25,6 +35,21 @@ public partial class Worker : Node2D
         set
         {
             _isCarryingFood = value;
+            QueueRedraw();
+        }
+    }
+
+    public WorkerBtState BtState
+    {
+        get => _btState;
+        set
+        {
+            if (_btState == value)
+            {
+                return;
+            }
+
+            _btState = value;
             QueueRedraw();
         }
     }
@@ -60,5 +85,22 @@ public partial class Worker : Node2D
         {
             DrawCircle(new Vector2(0, -Radius * 0.9f), Radius * 0.35f, CarryingColor);
         }
+
+        DrawBtStateLabel();
+    }
+
+    private void DrawBtStateLabel()
+    {
+        (string text, Color color) = BtState switch
+        {
+            WorkerBtState.SeekFood => ("Seek Food", new Color(0.95f, 0.65f, 0.25f)),
+            WorkerBtState.ReturnHome => ("Return Home", new Color(0.4f, 0.85f, 0.45f)),
+            _ => ("Wander", new Color(0.75f, 0.75f, 0.75f)),
+        };
+
+        Font font = ThemeDB.FallbackFont;
+        int fontSize = ThemeDB.FallbackFontSize;
+        Vector2 textPosition = new(-Radius * 2f, -Radius - 8f);
+        DrawString(font, textPosition, text, HorizontalAlignment.Center, Radius * 4f, fontSize, color);
     }
 }
